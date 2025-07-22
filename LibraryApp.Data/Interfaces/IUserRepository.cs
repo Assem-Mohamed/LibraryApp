@@ -10,6 +10,7 @@ namespace LibraryApp.Data.Interfaces
         Task AddAsync(User user);
         Task SaveChangesAsync();
         Task<User?> GetByUsernameAsync(string username);
-
+        Task UpdateAsync(User user);
+        Task DeleteAsync(User user);
     }
 }

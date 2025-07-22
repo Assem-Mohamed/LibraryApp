@@ -94,7 +94,45 @@ namespace LibraryApp.Controllers
 
             return Ok(dto);
         }
+        
+            [HttpPut("{id}")]
+            [Authorize(Roles = "Admin")]
+            public async Task<IActionResult> EditUser(int id, EdituserDto dto)
+            {
+                var user = await _userRepository.GetByIdAsync(id);
+                if (user == null)
+                    return NotFound("User not found.");
+
+                if (!string.IsNullOrEmpty(dto.Username))
+                    user.Username = dto.Username;
+
+                if (!string.IsNullOrEmpty(dto.Role))
+                {
+                    if (!Enum.TryParse<UserRole>(dto.Role, true, out var parsedRole))
+                        return BadRequest("Invalid role.");
+                    user.Role = parsedRole;
+                }
+
+                await _userRepository.UpdateAsync(user);
+                return Ok("User updated successfully.");
+            }
+
+          
+            [HttpDelete("{id}")]
+            [Authorize(Roles = "Admin")]
+            public async Task<IActionResult> DeleteUser(int id)
+            {
+                var user = await _userRepository.GetByIdAsync(id);
+                if (user == null)
+                    return NotFound("User not found.");
+
+                await _userRepository.DeleteAsync(user);
+                return Ok("User deleted successfully.");
+            }
+        }
+
 
 
     }
-}
+
+
