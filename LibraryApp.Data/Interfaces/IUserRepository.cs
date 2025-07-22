@@ -9,5 +9,7 @@ namespace LibraryApp.Data.Interfaces
         Task<IEnumerable<User>> GetAllAsync();
         Task AddAsync(User user);
         Task SaveChangesAsync();
+        Task<User?> GetByUsernameAsync(string username);
+
     }
 }
