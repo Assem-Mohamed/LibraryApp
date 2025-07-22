@@ -50,12 +50,20 @@ namespace LibraryApp.Data.Repositories
                 await SaveChangesAsync();
             }
         }
-        public async Task<IEnumerable<BorrowRecord>> GetOverdueRecordsAsync()
+        //public async Task<IEnumerable<BorrowRecord>> GetOverdueRecordsAsync()
+        //{
+        //    var today = DateOnly.FromDateTime(DateTime.Today);
+        //    return await _context.BorrowRecords
+        //        .Where(br => br.DueDate < today && br.BorrowStatus == BorrowStatus.Active)
+        //        .ToListAsync();
+        //}
+
+        public async Task<IEnumerable<BorrowRecord>> GetOverdueRecordsAsync(DateOnly today)
         {
-            var today = DateOnly.FromDateTime(DateTime.Today);
             return await _context.BorrowRecords
-                .Where(br => br.DueDate < today && br.BorrowStatus == BorrowStatus.Active)
-                .ToListAsync();
+            .Include(br => br.Book)
+            .Where(br => br.DueDate < today && br.BorrowStatus == BorrowStatus.Active)
+            .ToListAsync();
         }
     }
 }

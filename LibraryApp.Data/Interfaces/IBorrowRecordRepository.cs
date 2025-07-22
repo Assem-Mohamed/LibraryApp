@@ -10,5 +10,6 @@ namespace LibraryApp.Data.Interfaces
         Task AddAsync(BorrowRecord record);
         Task UpdateAsync(BorrowRecord record);
         Task SaveChangesAsync();
+        Task<IEnumerable<BorrowRecord>> GetOverdueRecordsAsync(DateOnly today);
     }
 }
