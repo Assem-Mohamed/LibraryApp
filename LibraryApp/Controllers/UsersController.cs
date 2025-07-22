@@ -35,7 +35,7 @@ namespace LibraryApp.Controllers
             return Ok("Favorite categories updated successfully.");
         }
 
-        [Authorize(Roles = "Admin, Librarian")]
+        [Authorize(Roles = "Admin,Librarian")]
         [HttpPost("create")]
         public async Task<IActionResult> CreateUser(CreateUserDto dto)
         {
@@ -67,6 +67,34 @@ namespace LibraryApp.Controllers
 
             return Ok("User created successfully.");
         }
+        [Authorize(Roles = "Admin,Librarian")]
+        [HttpGet("search")]
+        public async Task<IActionResult> SearchUser([FromQuery] string? username, [FromQuery] int? id)
+        {
+            if (id is null && string.IsNullOrWhiteSpace(username))
+                return BadRequest("You must provide either a username or an ID.");
+
+            User? user = null;
+
+            if (id.HasValue)
+                user = await _userRepository.GetByIdAsync(id.Value);
+            else if (!string.IsNullOrWhiteSpace(username))
+                user = await _userRepository.GetByUsernameAsync(username);
+
+            if (user == null)
+                return NotFound("User not found.");
+
+            var dto = new UserSummaryDto
+            {
+                Id = user.Id,
+                Username = user.Username,
+                Email = user.Email,
+                Role = user.Role.ToString()
+            };
+
+            return Ok(dto);
+        }
+
 
     }
 }
