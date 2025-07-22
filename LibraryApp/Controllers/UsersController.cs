@@ -3,6 +3,7 @@ using LibraryApp.Data.Enums;
 using LibraryApp.Data.Interfaces;
 using LibraryApp.Models.DTOs;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LibraryApp.Controllers
@@ -12,10 +13,12 @@ namespace LibraryApp.Controllers
     public class UsersController : ControllerBase
     {
         private readonly IUserRepository _userRepository;
+        private readonly IPasswordHasher<User> _passwordHasher;
 
-        public UsersController(IUserRepository userRepository)
+        public UsersController(IUserRepository userRepository, IPasswordHasher<User> passwordHasher)
         {
             _userRepository = userRepository;
+            _passwordHasher = passwordHasher;
         }
 
         [HttpPost("{id}/favorite-categories")]
@@ -31,5 +34,39 @@ namespace LibraryApp.Controllers
 
             return Ok("Favorite categories updated successfully.");
         }
+
+        [Authorize(Roles = "Admin, Librarian")]
+        [HttpPost("create")]
+        public async Task<IActionResult> CreateUser(CreateUserDto dto)
+        {
+            var currentRole = User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Role)?.Value;
+            if (currentRole == "Librarian" && dto.Role != "Librarian")
+                return Forbid("Librarians can only create other Librarians.");
+
+            if (currentRole == "Admin" && dto.Role != "Admin" && dto.Role != "Librarian")
+                return BadRequest("Admin can only create Admins or Librarians.");
+
+            if (!Enum.TryParse<UserRole>(dto.Role, out var role))
+                return BadRequest("Invalid role provided.");
+
+            var existingUser = await _userRepository.GetByEmailAsync(dto.Email);
+            if (existingUser != null)
+                return BadRequest("Email already registered.");
+
+            var user = new User
+            {
+                Username = dto.Username,
+                Email = dto.Email,
+                Role = role,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            user.PasswordHash = _passwordHasher.HashPassword(user, dto.Password);
+            await _userRepository.AddAsync(user);
+            await _userRepository.SaveChangesAsync();
+
+            return Ok("User created successfully.");
+        }
+
     }
 }
