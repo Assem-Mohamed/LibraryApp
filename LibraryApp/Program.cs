@@ -13,7 +13,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Configure DbContext
 builder.Services.AddDbContext<LibraryAppDbContext>(options =>
-options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+options.UseSqlServer(
+builder.Configuration.GetConnectionString("DefaultConnectionString"),
+sqlOptions => sqlOptions.MigrationsAssembly("LibraryApp.Data")
+)
+);
 
 // Register Repositories
 builder.Services.AddScoped<IUserRepository, UserRepository>();
