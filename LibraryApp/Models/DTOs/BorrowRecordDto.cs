@@ -5,7 +5,8 @@ namespace LibraryApp.Models.DTOs
     public class BorrowRecordDto
     {
         public int Id { get; set; }
-        public string BookTitle { get; set; } = string.Empty;
+        //public string BookTitle { get; set; } = string.Empty;
+        public int BookId { get; set; }
         public DateOnly BorrowDate { get; set; }
         public DateOnly DueDate { get; set; }
         public DateOnly? ReturnDate { get; set; }

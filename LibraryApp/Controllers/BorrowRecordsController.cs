@@ -11,7 +11,7 @@ namespace LibraryApp.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    //[Authorize]
+    [Authorize]
     public class BorrowRecordsController : ControllerBase
     {
         private readonly IBorrowRecordRepository _borrowRecordRepository;
@@ -75,24 +75,27 @@ namespace LibraryApp.Controllers
     }
 
     [HttpGet("history")]
-    public async Task<IActionResult> GetBorrowHistory()
+    [Authorize(Roles = "Admin, Librarian")]
+    public async Task<IActionResult> GetBorrowHistory([FromQuery] int userId)
     {
-        var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
         var records = await _borrowRecordRepository.GetByUserIdAsync(userId);
-
+    
         var response = records.Select(r => new BorrowRecordDto
         {
             Id = r.Id,
-            BookTitle = r.Book.Title,
+            //BookTitle = r.Book.Title,
+            BookId = r.BookId,
             BorrowDate = r.BorrowDate,
             DueDate = r.DueDate,
             ReturnDate = r.ReturnDate,
             BorrowStatus = r.BorrowStatus
         });
+    
         return Ok(response);
     }
 
-    //[Authorize(Roles = "Admin, Librarian")]
+
+        [Authorize(Roles = "Admin, Librarian")]
     [HttpGet("overdue")]
     public async Task<IActionResult> GetOverdueRecords()
     {
@@ -102,7 +105,7 @@ namespace LibraryApp.Controllers
         var response = overdueRecords.Select(r => new BorrowRecordDto
         {
             Id = r.Id,
-            BookTitle = r.Book.Title,
+            BookId = r.BookId,
             BorrowDate = r.BorrowDate,
             DueDate = r.DueDate,
             ReturnDate = r.ReturnDate,
