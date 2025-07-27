@@ -23,97 +23,119 @@ namespace LibraryApp.Controllers
             _bookRepository = bookRepository;
         }
 
-    [HttpPost]
-    public async Task<IActionResult> BorrowBook(CreateBorrowRecordDto dto)
-    {
-        var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-
-        var book = await _bookRepository.GetByIdAsync(dto.BookId);
-        if (book == null || book.BookStatus != BookStatus.Available)
-            return BadRequest("Book is not available for borrowing.");
-
-        var borrowRecord = new BorrowRecord
+        [HttpPost]
+        public async Task<IActionResult> BorrowBook(CreateBorrowRecordDto dto)
         {
-            UserId = userId,
-            BookId = dto.BookId,
-            BorrowDate = dto.BorrowDate,
-            DueDate = dto.DueDate,
-            BorrowStatus = BorrowStatus.Active
-        };
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
-        book.BookStatus = BookStatus.Borrowed;
+            var book = await _bookRepository.GetByIdAsync(dto.BookId);
+            if (book == null || book.BookStatus != BookStatus.Available)
+                return BadRequest("Book is not available for borrowing.");
 
-        await _borrowRecordRepository.AddAsync(borrowRecord);
-        await _borrowRecordRepository.SaveChangesAsync();
-        await _bookRepository.UpdateAsync(book);
-        await _bookRepository.SaveChangesAsync();
+            var borrowRecord = new BorrowRecord
+            {
+                UserId = userId,
+                BookId = dto.BookId,
+                BorrowDate = dto.BorrowDate,
+                DueDate = dto.DueDate,
+                BorrowStatus = BorrowStatus.Active
+            };
 
-        return Ok("Book borrowed successfully.");
-    }
+            book.BookStatus = BookStatus.Borrowed;
 
-    [HttpPut("{id}/return")]
-    public async Task<IActionResult> ReturnBook(int id, ReturnBookDto dto)
-    {
-        var borrowRecord = await _borrowRecordRepository.GetByIdAsync(id);
-        if (borrowRecord == null || borrowRecord.BorrowStatus != BorrowStatus.Active)
-            return BadRequest("Borrow record not found or already returned.");
+            await _borrowRecordRepository.AddAsync(borrowRecord);
+            await _borrowRecordRepository.SaveChangesAsync();
+            await _bookRepository.UpdateAsync(book);
+            await _bookRepository.SaveChangesAsync();
 
-        var book = await _bookRepository.GetByIdAsync(borrowRecord.BookId);
-        if (book == null)
-            return BadRequest("Associated book not found.");
+            return Ok("Book borrowed successfully.");
+        }
 
-        borrowRecord.ReturnDate = dto.ReturnDate;
-        borrowRecord.BorrowStatus = BorrowStatus.Returned;
-        book.BookStatus = BookStatus.Available;
-
-        await _borrowRecordRepository.UpdateAsync(borrowRecord);
-        await _borrowRecordRepository.SaveChangesAsync();
-        await _bookRepository.UpdateAsync(book);
-        await _bookRepository.SaveChangesAsync();
-
-        return Ok("Book returned successfully.");
-    }
-
-    [HttpGet("history")]
-    [Authorize(Roles = "Admin, Librarian")]
-    public async Task<IActionResult> GetBorrowHistory([FromQuery] int userId)
-    {
-        var records = await _borrowRecordRepository.GetByUserIdAsync(userId);
-    
-        var response = records.Select(r => new BorrowRecordDto
+        [HttpPut("{id}/return")]
+        public async Task<IActionResult> ReturnBook(int id, ReturnBookDto dto)
         {
-            Id = r.Id,
-            //BookTitle = r.Book.Title,
-            BookId = r.BookId,
-            BorrowDate = r.BorrowDate,
-            DueDate = r.DueDate,
-            ReturnDate = r.ReturnDate,
-            BorrowStatus = r.BorrowStatus
-        });
-    
-        return Ok(response);
-    }
+            var borrowRecord = await _borrowRecordRepository.GetByIdAsync(id);
+            if (borrowRecord == null || borrowRecord.BorrowStatus != BorrowStatus.Active)
+                return BadRequest("Borrow record not found or already returned.");
 
+            var book = await _bookRepository.GetByIdAsync(borrowRecord.BookId);
+            if (book == null)
+                return BadRequest("Associated book not found.");
+
+            borrowRecord.ReturnDate = dto.ReturnDate;
+            borrowRecord.BorrowStatus = BorrowStatus.Returned;
+            book.BookStatus = BookStatus.Available;
+
+            await _borrowRecordRepository.UpdateAsync(borrowRecord);
+            await _borrowRecordRepository.SaveChangesAsync();
+            await _bookRepository.UpdateAsync(book);
+            await _bookRepository.SaveChangesAsync();
+
+            return Ok("Book returned successfully.");
+        }
+
+        [HttpGet("history")]
+        [Authorize] // All authenticated users
+        public async Task<IActionResult> GetBorrowHistory([FromQuery] int? userId = null)
+        {
+            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+            var requesterId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+            // If the user is Admin or Librarian, allow query by userId
+            if (userRole == "Admin" || userRole == "Librarian")
+            {
+                if (userId == null)
+                    return BadRequest("User ID is required for admin/librarian");
+
+                // Fetch history of the specified user
+                var adminRecords = await _borrowRecordRepository.GetByUserIdAsync(userId.Value);
+                var adminResponse = adminRecords.Select(r => new BorrowRecordDto
+                {
+                    Id = r.Id,
+                    BookId = r.BookId,
+                    BorrowDate = r.BorrowDate,
+                    DueDate = r.DueDate,
+                    ReturnDate = r.ReturnDate,
+                    BorrowStatus = r.BorrowStatus
+                });
+
+                return Ok(adminResponse);
+            }
+            else
+            {
+                // Regular user — fetch their own history
+                var userRecords = await _borrowRecordRepository.GetByUserIdAsync(requesterId);
+                var userResponse = userRecords.Select(r => new BorrowRecordDto
+                {
+                    Id = r.Id,
+                    BookId = r.BookId,
+                    BorrowDate = r.BorrowDate,
+                    DueDate = r.DueDate,
+                    ReturnDate = r.ReturnDate,
+                    BorrowStatus = r.BorrowStatus
+                });
+
+                return Ok(userResponse);
+            }
+        }
 
         [Authorize(Roles = "Admin, Librarian")]
-    [HttpGet("overdue")]
-    public async Task<IActionResult> GetOverdueRecords()
-    {
-        var today = DateOnly.FromDateTime(DateTime.Today);
-        var overdueRecords = await _borrowRecordRepository.GetOverdueRecordsAsync(today);
-
-        var response = overdueRecords.Select(r => new BorrowRecordDto
+        [HttpGet("overdue")]
+        public async Task<IActionResult> GetOverdueRecords()
         {
-            Id = r.Id,
-            BookId = r.BookId,
-            BorrowDate = r.BorrowDate,
-            DueDate = r.DueDate,
-            ReturnDate = r.ReturnDate,
-            BorrowStatus = r.BorrowStatus
-        });
-        return Ok(response);
-    }
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            var overdueRecords = await _borrowRecordRepository.GetOverdueRecordsAsync(today);
 
-
+            var response = overdueRecords.Select(r => new BorrowRecordDto
+            {
+                Id = r.Id,
+                BookId = r.BookId,
+                BorrowDate = r.BorrowDate,
+                DueDate = r.DueDate,
+                ReturnDate = r.ReturnDate,
+                BorrowStatus = r.BorrowStatus
+            });
+            return Ok(response);
+        }
     }
 }
