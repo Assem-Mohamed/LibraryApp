@@ -58,7 +58,10 @@ namespace LibraryApp.Controllers
                 return Unauthorized("Invalid credentials, incorrect password");
 
             var token = _tokenGenerator.GenerateToken(user);
-            return Ok(new { Token = token });
+            return Ok(new { 
+                Token = token,
+                user.Role
+            });
         }
 
         //[Authorize]

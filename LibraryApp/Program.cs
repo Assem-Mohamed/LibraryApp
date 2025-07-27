@@ -79,6 +79,18 @@ builder.Services.AddAuthentication(options =>
         };
     });
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll",
+        policy =>
+        {
+            policy.AllowAnyOrigin()
+                          .AllowAnyMethod()
+                          .AllowAnyHeader();
+        });
+});
+
+
 builder.Services.AddAuthorization();
 
 // Controllers
@@ -126,6 +138,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseCors("AllowAll");
 app.UseHttpsRedirection();
 
 app.UseAuthentication(); // Important: must come before UseAuthorization
