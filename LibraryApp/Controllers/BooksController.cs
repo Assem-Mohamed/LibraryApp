@@ -3,8 +3,6 @@ using LibraryApp.Data.Enums;
 using LibraryApp.Data.Interfaces;
 using LibraryApp.Models.DTOs;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Authorization.Infrastructure;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LibraryApp.Controllers
@@ -109,7 +107,7 @@ namespace LibraryApp.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin, Librarian")]
+        [Authorize(Roles   = "Admin, Librarian")]
         public async Task<IActionResult> Delete(int id)
         {
             await _bookRepository.DeleteAsync(id);

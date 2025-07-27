@@ -11,7 +11,7 @@ namespace LibraryApp.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    //[Authorize]
     public class BorrowRecordsController : ControllerBase
     {
         private readonly IBorrowRecordRepository _borrowRecordRepository;
@@ -23,7 +23,7 @@ namespace LibraryApp.Controllers
             _bookRepository = bookRepository;
         }
 
-         [HttpPost]
+    [HttpPost]
     public async Task<IActionResult> BorrowBook(CreateBorrowRecordDto dto)
     {
         var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
@@ -92,7 +92,7 @@ namespace LibraryApp.Controllers
         return Ok(response);
     }
 
-    [Authorize(Roles = "Admin, Librarian")]
+    //[Authorize(Roles = "Admin, Librarian")]
     [HttpGet("overdue")]
     public async Task<IActionResult> GetOverdueRecords()
     {

@@ -17,11 +17,11 @@ namespace LibraryApp.Controllers
         private readonly IUserRepository _userRepository;
         private readonly IPasswordHasher<User> _passwordHasher;
         private readonly JwtTokenGenerator _tokenGenerator;
-        public AuthController(IUserRepository userRepository, IPasswordHasher<User> passwordHasher, IOptions<JwtSettings> jwtOptions)
+        public AuthController(IUserRepository userRepository, IPasswordHasher<User> passwordHasher, JwtTokenGenerator tokenGenerator)
         {
             _userRepository = userRepository;
             _passwordHasher = passwordHasher;
-            _tokenGenerator = new JwtTokenGenerator(jwtOptions.Value);
+            _tokenGenerator = tokenGenerator;
         }
 
         [HttpPost("signup")]
@@ -49,13 +49,13 @@ namespace LibraryApp.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginDto dto)
         {
-            var user = await _userRepository.GetByEmailAsync(dto.Username);
+            var user = await _userRepository.GetByUsernameAsync(dto.Username);
             if (user == null)
-                return Unauthorized("Invalid credentials.");
+                return Unauthorized("Invalid credentials, user doesn't exist");
 
             var result = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, dto.Password);
             if (result == PasswordVerificationResult.Failed)
-                return Unauthorized("Invalid credentials.");
+                return Unauthorized("Invalid credentials, incorrect password");
 
             var token = _tokenGenerator.GenerateToken(user);
             return Ok(new { Token = token });

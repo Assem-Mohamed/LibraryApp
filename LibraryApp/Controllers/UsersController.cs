@@ -22,7 +22,7 @@ namespace LibraryApp.Controllers
         }
 
         [HttpPost("{id}/favorite-categories")]
-        [Authorize]
+        //[Authorize]
         public async Task<IActionResult> UpdateFavoriteCategories(int id, UpdateFavoriteCategoriesDto dto)
         {
             var user = await _userRepository.GetByIdAsync(id);
